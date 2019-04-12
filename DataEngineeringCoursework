@@ -1,0 +1,59 @@
+import pandas as pd
+pd.options.display.max_columns = 99
+chunk_iter = pd.read_csv('crunchbase-investments.csv', chunksize=5000, encoding='ISO-8859-1')
+
+mv_list = []
+for chunk in chunk_iter:
+    mv_list.append(chunk.isnull().sum())
+    
+combined_mv_vc = pd.concat(mv_list)
+unique_combined_mv_vc = combined_mv_vc.groupby(combined_mv_vc.index).sum()
+unique_combined_mv_vc.sort_values()
+
+chunk_iter = pd.read_csv('crunchbase-investments.csv', chunksize=5000, encoding='ISO-8859-1')
+counter = 0
+series_memory_fp = pd.Series()
+for chunk in chunk_iter:
+    if counter == 0:
+        series_memory_fp = chunk.memory_usage(deep=True)
+    else:
+        series_memory_fp += chunk.memory_usage(deep=True)
+    counter += 1
+
+# Drop memory footprint calculation for the index.
+series_memory_fp = series_memory_fp.drop('Index')
+series_memory_fp
+
+series_memory_fp.sum() / (1024 * 1024)
+
+unique_combined_mv_vc.sort_values()
+
+drop_cols = ['investor_permalink', 'company_permalink', 'investor_category_code']
+keep_cols = chunk.columns.drop(drop_cols)
+
+keep_cols.tolist
+
+# Key: Column name, Value: List of types
+col_types = {}
+chunk_iter = pd.read_csv('crunchbase-investments.csv', chunksize=5000, encoding='ISO-8859-1', usecols=keep_cols)
+
+for chunk in chunk_iter:
+    for col in chunk.columns:
+        if col not in col_types:
+            col_types[col] = [str(chunk.dtypes[col])]
+        else:
+            col_types[col].append(str(chunk.dtypes[col]))
+           
+uniq_col_types = {}
+for k,v in col_types.items():
+    uniq_col_types[k] = set(col_types[k])
+uniq_col_types          
+
+chunk
+
+import sqlite3
+conn = sqlite3.connect('crunchbase.db')
+chunk_iter = pd.read_csv('crunchbase-investments.csv', chunksize=5000, encoding='ISO-8859-1')
+
+for chunk in chunk_iter:
+    chunk.to_sql("investments", conn, if_exists='append', index=False)
