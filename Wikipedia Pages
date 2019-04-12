@@ -1,0 +1,124 @@
+#list and count all the files within Wiki folder
+import os
+
+os.listdir("wiki")
+with open("wiki/Sabari.html") as f:
+    print(f.read())
+  
+#read all the content into a list called content
+#after that created a list of all the file names - removing the html and /wiki parts of the address
+import concurrent.futures
+import time
+
+pool = concurrent.futures.ThreadPoolExecutor(max_workers=7)
+
+def read_data(filename):
+    with open(filename) as f:
+        data = f.read()
+    return data
+
+start = time.time()
+filenames = ["wiki/{}".format(f) for f in os.listdir("wiki")]
+content = pool.map(read_data, filenames)
+content = list(content)
+
+end = time.time()
+print(end - start)
+articles = [f.replace(".html", "").replace("wiki/", "") for f in filenames]
+
+/*
+  This function takes information, reads it in using Beautiful Soup, extracts the div content from the page, converts Beautiful Objects 
+  strings and returns the content. I had experimented with different worker sizes in the process just to see about the difference between 
+  what amount of workers one is able to assign to the task.
+*/
+from bs4 import BeautifulSoup
+
+def parse_html(html):
+    soup = BeautifulSoup(html, 'html.parser')
+    return str(soup.find_all("div", id="content")[0])
+
+start = time.time()
+pool = concurrent.futures.ProcessPoolExecutor(max_workers=4)
+parsed = pool.map(parse_html, content)
+parsed = list(parsed)
+end = time.time()
+
+parsed[0]
+
+print(end - start)
+
+from bs4 import BeautifulSoup
+
+def parse_html(html):
+    soup = BeautifulSoup(html, 'html.parser')
+    return str(soup.find_all("div", id="content")[0])
+
+start = time.time()
+pool = concurrent.futures.ProcessPoolExecutor(max_workers=3)
+parsed = pool.map(parse_html, content)
+parsed = list(parsed)
+end = time.time()
+
+print(end - start)
+
+# this sorts out the common tags used from this process.
+
+from bs4 import BeautifulSoup
+
+def count_tags(html):
+    soup = BeautifulSoup(html, 'html.parser')
+    tags = {}
+    
+    for tag in soup.find_all():
+        if tag.name not in tags:
+            tags[tag.name] = 0
+        tags[tag.name] += 1
+    return tags
+
+start = time.time()
+pool = concurrent.futures.ProcessPoolExecutor(max_workers=3)
+tags = pool.map(count_tags, parsed)
+tags = list(tags)
+
+tag_counts = {}
+for tag in tags:
+    for i,j in tag.items():
+        if i not in tag_counts:
+            tag_counts[] = 0
+        tag_counts[i] += j
+end = time.time()
+
+print(end - start)
+tag_counts
+
+from bs4 import BeautifulSoup
+from collections import Counter
+import re
+
+/* limiting the words that one selects probably is key to speeding up the process. Otherwise, one can get bogged down in 
+counting each little a, the, and, etc that shows up in a wiki article. Which probably won't help matters when working with even larger sets.
+This was only run on about 1000 really. */
+def count_words(html):
+    soup = BeautifulSoup(html, 'html.parser')
+    words = {}
+    text = soup.get_text()
+    text = re.sub("\W+", " ", text.lower())
+    words = text.split(" ")
+    words = [w for w in words if len(w) >= 5]
+    return Counter(words).most_common(10)
+
+start = time.time()
+pool = concurrent.futures.ProcessPoolExecutor(max_workers=3)
+words = pool.map(count_words, parsed)
+words = list(words)
+
+word_counts = {}
+for wc in words:
+    for word, count in wc:
+        if word not in word_counts:
+            word_counts[word] = 0
+        word_counts[word] += 1
+end = time.time()
+
+print(end - start)
+word_counts
